@@ -1,67 +1,76 @@
 package com.interviewprep.exercises.exercises.shopping.ui.checkout
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.Button
-import android.widget.TextView
+import android.view.ViewGroup
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.interviewprep.exercises.R
 import com.interviewprep.exercises.exercises.shopping.model.ShoppingCart
 
-/**
- * CheckoutFragment — order confirmation screen.
- *
- * ─── popUpTo and popUpToInclusive (codelab step 6 concept) ───────────────────
- *
- * After the user completes checkout, pressing Back should return them to Home,
- * NOT to Cart (which now has stale data) or the Checkout screen itself.
- *
- * We achieve this with NavOptions:
- *   popUpTo = shop_home_dest     ← pop back to home
- *   popUpToInclusive = false     ← keep home in the back stack (don't pop it too)
- *
- * The action in the nav graph encodes this:
- *   <action
- *       android:id="@+id/action_cart_to_checkout_dest"
- *       app:destination="@+id/shop_checkout_dest"
- *       app:popUpTo="@+id/shop_home_dest"
- *       app:popUpToInclusive="false"/>
- *
- * Result: Checkout → Back → Home (not Cart).
- *
- * ─── Interview note ───────────────────────────────────────────────────────────
- *
- * popUpToInclusive=true would pop Home too, leaving an empty back stack.
- * Use this when you don't want the user to be able to go back at all
- * (e.g. after login flow, or after a one-time splash screen).
- *
- * ─────────────────────────────────────────────────────────────────────────────
- */
-class CheckoutFragment : Fragment(R.layout.fragment_checkout) {
+class CheckoutFragment : Fragment() {
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
         val total = ShoppingCart.totalPrice
-        view.findViewById<TextView>(R.id.tvOrderTotal).text =
-            "Order Total: $${"%.2f".format(total)}"
-
-        view.findViewById<Button>(R.id.btnConfirmOrder).setOnClickListener {
-            ShoppingCart.clear()
-
-            // Navigate back to Home, popping Cart AND Checkout off the stack.
-            // Interview note: This matches the nav graph action's popUpTo behavior.
-            // After purchase, Back from Home exits the app — correct behavior.
-            val navOptions = NavOptions.Builder()
-                .setPopUpTo(R.id.shop_home_dest, inclusive = false)
-                .build()
-            findNavController().navigate(R.id.shop_home_dest, null, navOptions)
+        return ComposeView(requireContext()).apply {
+            setContent {
+                MaterialTheme {
+                    CheckoutScreen(
+                        total = total,
+                        onConfirm = {
+                            ShoppingCart.clear()
+                            findNavController().navigate(
+                                R.id.shop_home_dest, null,
+                                NavOptions.Builder().setPopUpTo(R.id.shop_home_dest, false).build()
+                            )
+                        },
+                        onBack = { findNavController().navigateUp() }
+                    )
+                }
+            }
         }
+    }
+}
 
-        view.findViewById<Button>(R.id.btnBackToCart).setOnClickListener {
-            findNavController().navigateUp()
-        }
+@Composable
+fun CheckoutScreen(total: Double, onConfirm: () -> Unit, onBack: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A2E)).padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("🛍️", fontSize = 64.sp)
+        Spacer(Modifier.height(16.dp))
+        Text("Review Your Order", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+        Text(
+            "Order Total: \$${"%.2f".format(total)}",
+            color = Color(0xFFF5A623), fontWeight = FontWeight.Bold, fontSize = 20.sp,
+            modifier = Modifier.padding(vertical = 16.dp)
+        )
+        Button(
+            onClick = onConfirm,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF27AE60))
+        ) { Text("Confirm Order ✓", fontSize = 16.sp) }
+        Button(
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF374151))
+        ) { Text("← Back to Cart", fontSize = 14.sp) }
     }
 }

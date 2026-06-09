@@ -1,99 +1,159 @@
 package com.interviewprep.exercises.exercises.horizontalscroll.recyclerview
 
 import android.os.Bundle
-import android.widget.TextView
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.interviewprep.exercises.R
-import com.interviewprep.exercises.core.BaseFragment
+import com.interviewprep.exercises.core.ExerciseItem
+import com.interviewprep.exercises.core.ExerciseRegistry
 import com.interviewprep.exercises.exercises.horizontalscroll.HorizontalScrollViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.core.graphics.toColorInt
 
 /**
- * HorizontalListFragment — Approach A: RecyclerView
+ * HorizontalListFragment — Approach A: Compose LazyRow (replaces RecyclerView)
  *
- * Demonstrates a horizontal scrolling list where the user can scroll
- * multiple items at once (no snapping).
+ * ─── XML → Compose mapping ───────────────────────────────────────────────────
+ *   RecyclerView (horizontal)  →  LazyRow
+ *   LinearLayoutManager        →  built into LazyRow
+ *   ViewHolder + Adapter       →  items { } lambda in LazyRow
+ *   OnScrollListener (IDLE)    →  snapshotFlow { listState.firstVisibleItemIndex }
+ *                                 + .distinctUntilChanged() in a LaunchedEffect
  *
- * ─── Center detection strategy ───────────────────────────────────────────────
- *
- * We attach an OnScrollListener. When scrolling stops (SCROLL_STATE_IDLE),
- * we ask the LinearLayoutManager for the first fully visible item position.
- *
- * Why SCROLL_STATE_IDLE and not SCROLL_STATE_DRAGGING?
- * During dragging, the position is mid-flight — not meaningful yet.
- * We want the settled position after momentum decays.
- *
- * Why findFirstCompletelyVisibleItemPosition vs findFirstVisibleItemPosition?
- * "CompletelyVisible" means the item is not clipped at the edge.
- * If you use findFirstVisibleItemPosition, a half-visible card at the left
- * edge counts — leading to off-by-one mismatches with what the user sees.
- *
- * ─────────────────────────────────────────────────────────────────────────────
+ * ─── Center detection ────────────────────────────────────────────────────────
+ * LazyListState.firstVisibleItemIndex replaces
+ * LinearLayoutManager.findFirstCompletelyVisibleItemPosition().
+ * We collect it via snapshotFlow inside a LaunchedEffect so it only fires
+ * when the index actually changes (equivalent to SCROLL_STATE_IDLE behaviour).
  */
-class HorizontalListFragment : BaseFragment(R.layout.fragment_horizontal_list) {
+class HorizontalListFragment : Fragment() {
 
-    // activityViewModels scopes ViewModel to the Activity.
-    // This means both fragments (RecyclerView + ViewPager) share the same instance
-    // if the Activity is the same — useful for demonstrating the shared pattern.
     private val viewModel: HorizontalScrollViewModel by activityViewModels()
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var layoutManager: LinearLayoutManager
-    private lateinit var adapter: ExerciseCardAdapter
-    private lateinit var tvHeader: TextView
-    private lateinit var tvFooter: TextView
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View = ComposeView(requireContext()).apply {
+        setContent {
+            MaterialTheme {
+                HorizontalListScreen(viewModel)
+            }
+        }
+    }
+}
 
-    override fun onViewReady(savedInstanceState: Bundle?) {
-        bindViews()
-        setupRecyclerView()
-        observeViewModel()
+@Composable
+fun HorizontalListScreen(viewModel: HorizontalScrollViewModel) {
+    val selectedItem by viewModel.selectedItem.observeAsState(
+        ExerciseRegistry.sampleExerciseItems.first()
+    )
+    val items = ExerciseRegistry.sampleExerciseItems
+
+    // LazyListState holds scroll position and exposes firstVisibleItemIndex
+    val listState = rememberLazyListState()
+
+    // snapshotFlow converts Compose state into a Flow so we can react to changes.
+    // This is the Compose equivalent of RecyclerView.OnScrollListener.
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .distinctUntilChanged()   // equivalent to checking SCROLL_STATE_IDLE
+            .collect { index -> viewModel.onItemCentered(index) }
     }
 
-    private fun bindViews() {
-        recyclerView = requireView().findViewById(R.id.recyclerViewHorizontal)
-        tvHeader = requireView().findViewById(R.id.tvHeader)
-        tvFooter = requireView().findViewById(R.id.tvFooter)
-    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F7FA))
+    ) {
+        // Header — updates reactively when selectedItem changes
+        HeaderBar(title = "📂  ${selectedItem.title}", label = "APPROACH A — LazyRow (multi-scroll)")
 
-    private fun setupRecyclerView() {
-        layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        Spacer(Modifier.weight(1f))
 
-        adapter = ExerciseCardAdapter { item, position ->
-            // Optional: allow tap to explicitly select an item
-            viewModel.onItemCentered(position)
+        // LazyRow replaces horizontal RecyclerView + LinearLayoutManager
+        LazyRow(
+            state = listState,
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.height(160.dp)
+        ) {
+            items(items.size) { index ->
+                ExerciseCard(item = items[index])
+            }
         }
 
-        recyclerView.layoutManager = layoutManager
-        recyclerView.adapter = adapter
-        adapter.submitList(viewModel.items)
+        Text(
+            text = "Scroll freely. Header/footer update on scroll.",
+            fontSize = 12.sp,
+            color = Color(0xFF6B7280),
+            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
+        )
 
-        // ── The key scroll listener ────────────────────────────────────────
-        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        Spacer(Modifier.weight(1f))
 
-            override fun onScrollStateChanged(rv: RecyclerView, newState: Int) {
-                super.onScrollStateChanged(rv, newState)
-
-                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    // Scroll has fully settled — safe to read current position
-                    val centerPos = layoutManager.findFirstCompletelyVisibleItemPosition()
-
-                    // Guard: -1 means no item is completely visible (rare edge case
-                    // when the list is sized too small or item is larger than viewport)
-                    if (centerPos != RecyclerView.NO_ID.toInt()) {
-                        viewModel.onItemCentered(centerPos)
-                    }
-                }
-            }
-        })
+        // Footer — updates reactively
+        FooterBar(description = selectedItem.description)
     }
+}
 
-    private fun observeViewModel() {
-        // Header and footer observe the same LiveData and update reactively.
-        // Neither needs to know HOW the selection happened (scroll vs tap).
-        viewModel.selectedItem.observe(viewLifecycleOwner) { item ->
-            tvHeader.text = "📂  ${item.title}"
-            tvFooter.text = item.description
+@Composable
+fun HeaderBar(title: String, label: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(16.dp)
+    ) {
+        Text(text = title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A2E))
+        Text(text = label, fontSize = 11.sp, color = Color(0xFF9CA3AF), modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+@Composable
+fun FooterBar(description: String) {
+    Text(
+        text = description,
+        fontSize = 14.sp,
+        color = Color(0xFF4B5563),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(16.dp)
+    )
+}
+
+@Composable
+fun ExerciseCard(item: ExerciseItem) {
+    Card(
+        modifier = Modifier.width(140.dp).fillMaxHeight(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(3.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .background(Color(item.colorHex.toColorInt()))
+            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(item.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1A1A2E))
+                Text(item.subtitle, fontSize = 11.sp, color = Color(0xFF6B7280), modifier = Modifier.padding(top = 4.dp))
+            }
         }
     }
 }

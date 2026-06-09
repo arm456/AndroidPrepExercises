@@ -2,98 +2,106 @@ package com.interviewprep.exercises.exercises.shopping.ui.home
 
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
-import android.widget.Button
-import android.widget.TextView
-import androidx.core.view.MenuHost
-import androidx.core.view.MenuProvider
+import android.view.ViewGroup
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.interviewprep.exercises.R
 import com.interviewprep.exercises.exercises.shopping.model.Product
 import com.interviewprep.exercises.exercises.shopping.model.ShoppingCart
 
-/**
- * HomeFragment — the product listing screen.
- *
- * ─── Navigation patterns demonstrated ────────────────────────────────────────
- *
- * 1. Navigate by ACTION ID with argument (Safe Args pattern):
- *    findNavController().navigate(HomeFragmentDirections.actionHomeToProductDest(id))
- *
- * 2. Navigate by DESTINATION ID (direct, no args):
- *    findNavController().navigate(R.id.shop_cart_dest)
- *
- * 3. Overflow menu navigation via NavigationUI.onNavDestinationSelected():
- *    Menu item ID matches destination ID → NavigationUI navigates automatically.
- *
- * ─── Milestone 2: Extra cart entry point ─────────────────────────────────────
- * The "View Cart" button at the bottom is the third path to CartFragment,
- * alongside bottom nav and drawer.
- */
-class HomeFragment : Fragment(R.layout.fragment_shop_home) {
+class HomeFragment : Fragment() {
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        setupMenu()
-        setupProductList(view)
-        setupCartButton(view)
-        updateCartBadge(view)
-    }
-
-    private fun setupMenu() {
-        val menuHost: MenuHost = requireActivity()
-        menuHost.addMenuProvider(object : MenuProvider {
-            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                menuInflater.inflate(R.menu.menu_overflow_home, menu)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View = ComposeView(requireContext()).apply {
+        setContent {
+            MaterialTheme {
+                ShopHomeScreen(
+                    onProductClick = { product ->
+                        val action = HomeFragmentDirections.actionHomeToProductDest(product.id)
+                        findNavController().navigate(action)
+                    },
+                    onCartClick = {
+                        findNavController().navigate(R.id.shop_cart_dest)
+                    }
+                )
             }
-            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-                // NavigationUI.onNavDestinationSelected returns true if the
-                // menu item ID matched a nav graph destination and was handled.
-                // Fall back to false — super.onOptionsItemSelected() is an Activity
-                // method, not callable from inside a Fragment's MenuProvider lambda.
-                return androidx.navigation.ui.NavigationUI
-                    .onNavDestinationSelected(menuItem, findNavController())
-            }
-        }, viewLifecycleOwner, Lifecycle.State.RESUMED)
-    }
-
-    private fun setupProductList(view: View) {
-        val recyclerView = view.findViewById<RecyclerView>(R.id.rvProducts)
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = ProductAdapter(ShoppingCart.products) { product ->
-            navigateToProduct(product)
         }
     }
 
-    private fun navigateToProduct(product: Product) {
-        val action = HomeFragmentDirections.actionHomeToProductDest(product.id)
-        findNavController().navigate(action)
-    }
-
-    private fun setupCartButton(view: View) {
-        // ── Milestone 2: third cart entry point ──────────────────────────
-        // Plain Button (not FAB) — type must match what's in the XML layout.
-        // FloatingActionButton extends ImageButton, not Button, so casting
-        // to Button causes a ClassCastException at runtime.
-        view.findViewById<Button>(R.id.btnGoToCart).setOnClickListener {
-            findNavController().navigate(R.id.shop_cart_dest)
-        }
-    }
-
-    private fun updateCartBadge(view: View) {
-        view.findViewById<TextView>(R.id.tvCartBadge).text =
-            ShoppingCart.totalItems.toString()
-    }
-
+    // Refresh cart count when returning from product screen
     override fun onResume() {
         super.onResume()
-        view?.let { updateCartBadge(it) }
+        (view as? ComposeView)?.invalidate()
+    }
+}
+
+@Composable
+fun ShopHomeScreen(onProductClick: (Product) -> Unit, onCartClick: () -> Unit) {
+    val cartCount = remember { mutableStateOf(ShoppingCart.totalItems) }
+
+    // Recompose cart badge whenever screen becomes active
+    LaunchedEffect(Unit) { cartCount.value = ShoppingCart.totalItems }
+
+    Column(Modifier.fillMaxSize().background(Color(0xFF1A1A2E))) {
+        LazyColumn(modifier = Modifier.weight(1f).padding(8.dp)) {
+            items(ShoppingCart.products) { product ->
+                ProductCard(product = product, onClick = { onProductClick(product) })
+            }
+        }
+
+        // ── Milestone 2: Extra cart entry point ──────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF16213E))
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Items in cart: ${cartCount.value}", color = Color(0xFF9CA3AF), fontSize = 13.sp)
+            Button(
+                onClick = { cartCount.value = ShoppingCart.totalItems; onCartClick() },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF5A623))
+            ) { Text("View Cart →", fontSize = 13.sp) }
+        }
+    }
+}
+
+@Composable
+fun ProductCard(product: Product, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF16213E)),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(product.emoji, fontSize = 32.sp, modifier = Modifier.padding(end = 14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(product.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("\$${product.price}", color = Color(0xFFF5A623), fontSize = 13.sp)
+            }
+            Button(
+                onClick = onClick,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A90E2))
+            ) { Text("View", fontSize = 12.sp) }
+        }
     }
 }

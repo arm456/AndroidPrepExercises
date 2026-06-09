@@ -1,56 +1,93 @@
 package com.interviewprep.exercises.exercises.roulette.ui.history
 
 import android.os.Bundle
-import android.widget.TextView
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.interviewprep.exercises.R
-import com.interviewprep.exercises.core.BaseFragment
+import com.interviewprep.exercises.core.ImmutableList
 import com.interviewprep.exercises.exercises.roulette.RouletteViewModel
+import com.interviewprep.exercises.exercises.roulette.model.RollResult
 
-/**
- * HistoryFragment — Milestone 1 & 2
- *
- * Displays the roll history list. Accessible by swiping right from BetFragment.
- *
- * ─── Milestone 2: Auto-refresh without pull-to-refresh ───────────────────────
- *
- * This fragment observes rollResults LiveData from the shared RouletteViewModel.
- * When BetFragment calls viewModel.roll(), the ViewModel updates _rollResults
- * with a new ImmutableList reference → LiveData notifies this observer →
- * adapter.submitList() re-diffs and animates the new row in automatically.
- *
- * No polling. No manual refresh. No callbacks between fragments.
- * The ViewModel is the single source of truth; both fragments are just views.
- *
- * ─── Why this doesn't observe bets ───────────────────────────────────────────
- *
- * HistoryFragment only subscribes to _rollResults — not _bets or _totalMoney.
- * This means incrementing a bet in BetFragment triggers zero work in this
- * fragment. See RouletteViewModel for the full Q3 architectural rationale.
- *
- * ─────────────────────────────────────────────────────────────────────────────
- */
-class HistoryFragment : BaseFragment(R.layout.fragment_history) {
+class HistoryFragment : Fragment() {
 
     private val viewModel: RouletteViewModel by activityViewModels()
-    private lateinit var adapter: HistoryAdapter
-    private lateinit var tvEmptyState: TextView
 
-    override fun onViewReady(savedInstanceState: Bundle?) {
-        val recyclerView = requireView().findViewById<RecyclerView>(R.id.recyclerViewHistory)
-        tvEmptyState = requireView().findViewById(R.id.tvEmptyHistory)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View = ComposeView(requireContext()).apply {
+        setContent { MaterialTheme { HistoryScreen(viewModel) } }
+    }
+}
 
-        adapter = HistoryAdapter()
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = adapter
+@Composable
+fun HistoryScreen(viewModel: RouletteViewModel) {
+    val results by viewModel.rollResults.observeAsState(ImmutableList.of())
+    val list = results.toList().reversed()
 
-        // ── Observe only rollResults — bet changes never trigger this ────────
-        viewModel.rollResults.observe(viewLifecycleOwner) { results ->
-            val list = results.toList().reversed()  // newest at top
-            adapter.submitList(list)
-            tvEmptyState.visibility = if (list.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+    Column(Modifier.fillMaxSize().background(Color(0xFF1A1A2E))) {
+        Text(
+            "Roll History",
+            color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF16213E))
+                .padding(16.dp)
+        )
+        Text(
+            "Swipe left to bet →",
+            color = Color(0xFF6B7280), fontSize = 11.sp,
+            modifier = Modifier.padding(8.dp)
+        )
+
+        if (list.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "No rolls yet.\nPlace a bet and spin!",
+                    color = Color(0xFF6B7280), fontSize = 14.sp
+                )
+            }
+        } else {
+            LazyColumn(modifier = Modifier.padding(horizontal = 8.dp)) {
+                items(list) { result -> RollResultRow(result) }
+            }
+        }
+    }
+}
+
+@Composable
+fun RollResultRow(result: RollResult) {
+    val earningsColor = when {
+        result.earnings > 0 -> Color(0xFF27AE60)
+        result.earnings < 0 -> Color(0xFFE74C3C)
+        else                -> Color(0xFF95A5A6)
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF16213E)),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Rolled: ${result.number}", color = Color.White, fontSize = 15.sp, modifier = Modifier.weight(1f))
+            Text(result.formattedEarnings, color = earningsColor, fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
     }
 }

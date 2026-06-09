@@ -1,31 +1,44 @@
 package com.interviewprep.exercises.exercises.shopping.ui
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
-import com.interviewprep.exercises.R
 
-/**
- * SettingsFragment
- *
- * Reached via the overflow menu (⋮) on the home screen.
- *
- * ─── NavigationUI.onNavDestinationSelected ────────────────────────────────────
- *
- * In HomeFragment, the options menu item for Settings has:
- *   android:id="@+id/shop_settings_dest"
- *
- * That ID matches this fragment's destination ID in the nav graph.
- * NavigationUI.onNavDestinationSelected() detects the match and calls
- * findNavController().navigate(R.id.shop_settings_dest) automatically.
- *
- * This is the codelab's "menu navigation" pattern (step 7):
- * You don't write any navigation code — just name the menu item ID to match
- * the destination ID, and NavigationUI handles the rest.
- *
- * ─────────────────────────────────────────────────────────────────────────────
- */
-class SettingsFragment : Fragment(R.layout.fragment_shop_settings) {
-    // No navigation code needed here — NavigationUI handles arriving at this
-    // destination. The back button returns to wherever we came from automatically.
+class SettingsFragment : Fragment() {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+        ComposeView(requireContext()).apply {
+            setContent { MaterialTheme { SettingsScreen() } }
+        }
+}
+
+@Composable
+fun SettingsScreen() {
+    Column(
+        modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A2E)).padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("⚙️", fontSize = 64.sp)
+        Spacer(Modifier.height(16.dp))
+        Text("Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+        Text(
+            "Reached via overflow menu (⋮).\n\nNavigationUI.onNavDestinationSelected()\nmatched the menu item ID 'shop_settings_dest'\nto this destination automatically.",
+            color = Color(0xFF6B7280), fontSize = 14.sp, textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 16.dp)
+        )
+    }
 }

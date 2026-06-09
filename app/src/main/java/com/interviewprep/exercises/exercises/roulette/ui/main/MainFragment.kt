@@ -1,59 +1,33 @@
 package com.interviewprep.exercises.exercises.roulette.ui.main
 
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.viewpager2.widget.ViewPager2
-import com.interviewprep.exercises.R
-import com.interviewprep.exercises.core.BaseFragment
 import com.interviewprep.exercises.exercises.roulette.RouletteViewModel
-import com.interviewprep.exercises.exercises.roulette.ui.bet.BetFragment
-import com.interviewprep.exercises.exercises.roulette.ui.history.HistoryFragment
 
 /**
- * MainFragment — the outer host fragment for the Roulette exercise.
+ * MainFragment — outer host for the Roulette ViewPager2.
  *
- * ─── Milestone 4 Q1: How many fragments and why? ─────────────────────────────
+ * Creates ViewPager2 programmatically (no XML layout needed).
+ * The two inner pages (BetFragment, HistoryFragment) now use Compose for their UI,
+ * but they're still Fragments — ViewPager2 requires Fragment pages.
  *
- * We added 3 fragments:
- *
- *   1. MainFragment (this file) — hosts the ViewPager2.
- *      ViewPager2 requires one Fragment per "page", so we need an outer
- *      container to hold the pager itself. This fragment owns no visible UI
- *      beyond the ViewPager — it's purely structural.
- *
- *   2. BetFragment — the left page. Shows betting controls.
- *
- *   3. HistoryFragment — the right page. Shows roll history.
- *      Accessible by swiping right. Swiping left returns to BetFragment.
- *
- * Could there be fewer?
- *   Yes — if we restructured completely, BetFragment and HistoryFragment
- *   could be merged into a single fragment using a horizontal split layout
- *   (e.g., SlidingPaneLayout). Then MainFragment would also be unnecessary.
- *   Minimum: 1 fragment (or even 0 fragments with a pure Activity approach).
- *
- * In practice, the separate fragment approach is preferred for:
- *   - Clear separation of concerns
- *   - Independent lifecycle management
- *   - Easier to extend (add more swipe pages later)
- *
- * ─────────────────────────────────────────────────────────────────────────────
+ * Interview note: Compose and Fragment/ViewPager2 coexist cleanly.
+ * Each Fragment hosts a ComposeView as its root view. The ViewPager2 doesn't
+ * know or care whether its fragment pages use Compose or XML internally.
  */
-class MainFragment : BaseFragment(R.layout.fragment_roulette_main) {
+class MainFragment : Fragment() {
 
-    // ViewModel is scoped to the activity — same instance across all 3 fragments
     private val viewModel: RouletteViewModel by activityViewModels()
 
-    override fun onViewReady(savedInstanceState: Bundle?) {
-        val viewPager = requireView().findViewById<ViewPager2>(R.id.viewPagerRoulette)
-
-        val adapter = RoulettePagerAdapter(
-            fragmentManager = childFragmentManager,
-            lifecycle = viewLifecycleOwner.lifecycle
-        )
-        viewPager.adapter = adapter
-
-        // Start on the BetFragment (page 0)
-        viewPager.currentItem = 0
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View = ViewPager2(requireContext()).apply {
+        adapter = RoulettePagerAdapter(childFragmentManager, viewLifecycleOwner.lifecycle)
+        currentItem = 0
     }
 }

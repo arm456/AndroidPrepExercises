@@ -1,84 +1,99 @@
 package com.interviewprep.exercises.exercises.shopping.ui.cart
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.Button
-import android.widget.TextView
+import android.view.ViewGroup
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.interviewprep.exercises.R
+import com.interviewprep.exercises.exercises.shopping.model.CartItem
 import com.interviewprep.exercises.exercises.shopping.model.ShoppingCart
 
-/**
- * CartFragment
- *
- * ─── Navigation concepts demonstrated ────────────────────────────────────────
- *
- * 1. This is a TOP-LEVEL destination (listed in AppBarConfiguration's
- *    topLevelDestinationIds), so it shows a hamburger icon, not a back arrow.
- *    The user treats it as a peer of Home, not a child.
- *
- * 2. This is also the target of the DEEP LINK defined in the nav graph:
- *    <deepLink app:uri="www.shoppingapp.example.com/cart"/>
- *    Deep links allow external apps / notifications to navigate directly here.
- *    Interview note: NavController handles deep link resolution automatically —
- *    you just define the URI in the nav graph, no code needed in the Fragment.
- *
- * 3. Checkout uses popUpTo + popUpToInclusive to clear the cart from the
- *    back stack after purchase, so Back doesn't return to a stale cart.
- *
- * ─── Milestone 2: This destination is reachable 3 ways ───────────────────────
- *
- *   a) Bottom navigation cart icon  → NavigationUI.setupWithNavController
- *   b) Navigation drawer "Cart"     → NavigationUI.setupWithNavController
- *   c) Home screen floating button  → findNavController().navigate(R.id.shop_cart_dest)
- *
- * ─────────────────────────────────────────────────────────────────────────────
- */
-class CartFragment : Fragment(R.layout.fragment_cart) {
+class CartFragment : Fragment() {
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        refreshCart(view)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        view?.let { refreshCart(it) }
-    }
-
-    private fun refreshCart(view: View) {
-        val tvEmpty = view.findViewById<TextView>(R.id.tvCartEmpty)
-        val rvCart = view.findViewById<RecyclerView>(R.id.rvCart)
-        val tvTotal = view.findViewById<TextView>(R.id.tvCartTotal)
-        val btnCheckout = view.findViewById<Button>(R.id.btnCheckout)
-
-        if (ShoppingCart.isEmpty()) {
-            tvEmpty.visibility = View.VISIBLE
-            rvCart.visibility = View.GONE
-            tvTotal.visibility = View.GONE
-            btnCheckout.isEnabled = false
-            btnCheckout.alpha = 0.4f
-        } else {
-            tvEmpty.visibility = View.GONE
-            rvCart.visibility = View.VISIBLE
-            tvTotal.visibility = View.VISIBLE
-            btnCheckout.isEnabled = true
-            btnCheckout.alpha = 1.0f
-
-            rvCart.layoutManager = LinearLayoutManager(requireContext())
-            rvCart.adapter = CartAdapter(ShoppingCart.items) { productId ->
-                ShoppingCart.removeItem(productId)
-                refreshCart(view)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View = ComposeView(requireContext()).apply {
+        setContent {
+            MaterialTheme {
+                CartScreen(onCheckout = {
+                    findNavController().navigate(R.id.action_cart_to_checkout_dest)
+                })
             }
-
-            tvTotal.text = "Total: $${"%.2f".format(ShoppingCart.totalPrice)}"
         }
+    }
+}
 
-        btnCheckout.setOnClickListener {
-            findNavController().navigate(R.id.action_cart_to_checkout_dest)
+@Composable
+fun CartScreen(onCheckout: () -> Unit) {
+    // cartItems as mutable state so removals recompose the list immediately
+    var cartItems by remember { mutableStateOf(ShoppingCart.items) }
+
+    Column(Modifier.fillMaxSize().background(Color(0xFF1A1A2E))) {
+        if (cartItems.isEmpty()) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text("Your cart is empty.\nBrowse products to add items!", color = Color(0xFF6B7280), fontSize = 16.sp)
+            }
+        } else {
+            LazyColumn(modifier = Modifier.weight(1f).padding(8.dp)) {
+                items(cartItems, key = { it.product.id }) { item ->
+                    CartItemRow(item = item, onRemove = {
+                        ShoppingCart.removeItem(item.product.id)
+                        cartItems = ShoppingCart.items
+                    })
+                }
+            }
+            Text(
+                "Total: \$${"%.2f".format(ShoppingCart.totalPrice)}",
+                color = Color(0xFFF5A623), fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            )
+        }
+        Button(
+            onClick = onCheckout,
+            enabled = cartItems.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF27AE60),
+                disabledContainerColor = Color(0xFF27AE60).copy(alpha = 0.4f)
+            )
+        ) { Text("Proceed to Checkout", fontSize = 16.sp) }
+    }
+}
+
+@Composable
+fun CartItemRow(item: CartItem, onRemove: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF16213E)),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("${item.product.emoji} ${item.product.name}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Qty: ${item.quantity}", color = Color(0xFF9CA3AF), fontSize = 12.sp)
+            }
+            Text("\$${"%.2f".format(item.subtotal)}", color = Color(0xFFF5A623), fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 10.dp))
+            Button(
+                onClick = onRemove,
+                contentPadding = PaddingValues(horizontal = 8.dp),
+                modifier = Modifier.height(32.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE74C3C))
+            ) { Text("Remove", fontSize = 11.sp) }
         }
     }
 }
