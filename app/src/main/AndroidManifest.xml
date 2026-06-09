@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AndroidInterviewExercises">
+
+        <!-- Main exercise launcher -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <!-- Exercise 03: Jetpack Navigation shopping app -->
+        <activity
+            android:name=".exercises.shopping.ShoppingActivity"
+            android:theme="@style/Theme.AndroidInterviewExercises.Shopping"
+            android:exported="true"
+            android:label="Shopping Cart">
+            <!-- Deep link intent filter (codelab step 9) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="www.shoppingapp.example.com"/>
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

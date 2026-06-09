@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Bottom navigation menu for ShoppingActivity.
+
+    Item IDs MUST match destination IDs in shopping_navigation.xml.
+    NavigationUI.setupWithNavController() uses this ID match to call
+    navController.navigate(itemId) automatically when an item is selected.
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/shop_home_dest"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:title="Shop"/>
+
+    <!--
+        Milestone 2: Cart is in the bottom nav.
+        Also reachable from drawer and the home screen FAB button.
+    -->
+    <item
+        android:id="@+id/shop_cart_dest"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="Cart"/>
+
+</menu>

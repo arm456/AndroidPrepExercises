@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.interviewprep.exercises.HomeFragment"
+        android:label="Android Interview Exercises">
+
+        <action
+            android:id="@+id/action_home_to_horizontalList"
+            app:destination="@id/horizontalListFragment"/>
+
+        <action
+            android:id="@+id/action_home_to_horizontalPager"
+            app:destination="@id/horizontalPagerFragment"/>
+
+        <action
+            android:id="@+id/action_home_to_roulette"
+            app:destination="@id/rouletteMainFragment"/>
+
+        <!-- ➕ Add new exercise destinations here -->
+    </fragment>
+
+    <!-- Exercise 01 — Approach A: RecyclerView -->
+    <fragment
+        android:id="@+id/horizontalListFragment"
+        android:name="com.interviewprep.exercises.exercises.horizontalscroll.recyclerview.HorizontalListFragment"
+        android:label="Horizontal Scroll — RecyclerView"/>
+
+    <!-- Exercise 01 — Approach B: ViewPager2 -->
+    <fragment
+        android:id="@+id/horizontalPagerFragment"
+        android:name="com.interviewprep.exercises.exercises.horizontalscroll.viewpager.HorizontalPagerFragment"
+        android:label="Horizontal Scroll — ViewPager2"/>
+
+    <!-- Exercise 02 — Roulette Case Study: MainFragment hosts Bet + History via ViewPager2 -->
+    <fragment
+        android:id="@+id/rouletteMainFragment"
+        android:name="com.interviewprep.exercises.exercises.roulette.ui.main.MainFragment"
+        android:label="Roulette — Case Study"/>
+
+    <!-- ➕ Add new exercise fragments here -->
+
+</navigation>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ShoppingActivity layout — the "shell" for the entire shopping exercise.
+
+    Structure (outer → inner):
+      DrawerLayout                 ← enables the nav drawer slide gesture
+        CoordinatorLayout          ← coordinates toolbar + scrolling content
+          AppBarLayout + Toolbar   ← global toolbar (title auto-set by NavigationUI)
+          NavHostFragment          ← swaps fragment destinations in and out
+          BottomNavigationView     ← global bottom nav (wired via NavigationUI)
+        NavigationView             ← the drawer panel (right side of DrawerLayout)
+
+    Interview note: The Toolbar, BottomNavigationView, and NavigationView are all
+    in the Activity layout — NOT inside fragments. This is intentional. These are
+    GLOBAL navigation UI that should persist across destinations, matching the
+    "Principles of Navigation" that Jetpack Navigation is designed around.
+-->
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/shopping_drawer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Main content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Global toolbar — title updated by NavigationUI using nav graph label -->
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/shopping_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"/>
+
+        <!-- NavHostFragment: swaps fragment destinations -->
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/shopping_nav_host_fragment"
+            android:name="androidx.navigation.fragment.NavHostFragment"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:defaultNavHost="true"
+            app:navGraph="@navigation/shopping_navigation"/>
+
+        <!-- Bottom navigation — wired to NavController via NavigationUI -->
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/shopping_bottom_nav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?android:attr/windowBackground"
+            app:menu="@menu/menu_bottom_nav_shopping"/>
+
+    </LinearLayout>
+
+    <!-- Navigation drawer panel -->
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/shopping_nav_view"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        app:menu="@menu/menu_drawer_shopping"/>
+
+</androidx.drawerlayout.widget.DrawerLayout>

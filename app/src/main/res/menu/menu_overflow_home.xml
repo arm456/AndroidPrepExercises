@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Overflow menu (⋮) shown on HomeFragment.
+
+    The item ID "shop_settings_dest" matches the destination ID in the nav graph.
+    NavigationUI.onNavDestinationSelected() detects this match and navigates
+    to the settings destination automatically — no manual navigate() call needed.
+
+    This demonstrates the codelab's "menu navigation" pattern (step 7).
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/shop_settings_dest"
+        android:title="Settings"
+        android:orderInCategory="100"
+        android:showAsAction="never"/>
+
+</menu>

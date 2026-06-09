@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    shopping_navigation.xml — Exercise 03 Navigation Graph
+
+    This graph demonstrates every key Navigation Component concept from the codelab:
+
+    CONCEPT 1 — Destinations: each <fragment> is a node in the graph
+    CONCEPT 2 — Actions: arrows between nodes with optional animation + popUpTo
+    CONCEPT 3 — Arguments: <argument> tags for Safe Args type-safe passing
+    CONCEPT 4 — Deep Links: <deepLink> for external entry points
+    CONCEPT 5 — Start destination: where the app begins (home)
+    CONCEPT 6 — popUpTo / popUpToInclusive: back stack management
+    CONCEPT 7 — Labels: shown as ActionBar title by NavigationUI automatically
+
+    Milestone 2: CartFragment is reachable from 3 places:
+      a) Bottom nav (wired in ShoppingActivity via NavigationUI)
+      b) Nav drawer (wired in ShoppingActivity via NavigationUI)
+      c) Home screen "Go to Cart" button (navigate(R.id.shop_cart_dest))
+-->
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/shopping_navigation"
+    app:startDestination="@id/shop_home_dest">
+
+    <!-- ── Home: product listing ────────────────────────────────────────── -->
+    <fragment
+        android:id="@+id/shop_home_dest"
+        android:name="com.interviewprep.exercises.exercises.shopping.ui.home.HomeFragment"
+        android:label="Shop"
+        tools:layout="@layout/fragment_shop_home">
+
+        <!--
+            Action to product detail.
+            Includes slide animations (codelab step 8 concept).
+            argument productId is passed by HomeFragmentDirections.
+        -->
+        <action
+            android:id="@+id/action_home_to_product_dest"
+            app:destination="@id/shop_product_dest"
+            app:enterAnim="@anim/shop_slide_in_right"
+            app:exitAnim="@anim/shop_slide_out_left"
+            app:popEnterAnim="@anim/shop_slide_in_left"
+            app:popExitAnim="@anim/shop_slide_out_right"/>
+
+    </fragment>
+
+    <!-- ── Product detail ───────────────────────────────────────────────── -->
+    <fragment
+        android:id="@+id/shop_product_dest"
+        android:name="com.interviewprep.exercises.exercises.shopping.ui.product.ProductDetailFragment"
+        android:label="Product Detail"
+        tools:layout="@layout/fragment_product_detail">
+
+        <!--
+            Safe Args argument.
+            With the Safe Args plugin this generates ProductDetailFragmentArgs.
+            We read it manually: arguments?.getInt("productId")
+        -->
+        <argument
+            android:name="productId"
+            app:argType="integer"
+            android:defaultValue="-1"/>
+
+    </fragment>
+
+    <!-- ── Cart: top-level destination (hamburger, not back arrow) ──────── -->
+    <fragment
+        android:id="@+id/shop_cart_dest"
+        android:name="com.interviewprep.exercises.exercises.shopping.ui.cart.CartFragment"
+        android:label="Cart"
+        tools:layout="@layout/fragment_cart">
+
+        <!--
+            Deep link (codelab step 9 concept).
+            Allows external apps / notifications to open the cart directly.
+            NavController resolves this URI and navigates to this destination.
+            No Fragment code needed — just this tag.
+        -->
+        <deepLink app:uri="www.shoppingapp.example.com/cart"/>
+
+        <!--
+            Action to checkout.
+            popUpTo="shop_home_dest" ensures that after purchase,
+            Back goes to Home — not back to Cart.
+        -->
+        <action
+            android:id="@+id/action_cart_to_checkout_dest"
+            app:destination="@id/shop_checkout_dest"
+            app:popUpTo="@id/shop_home_dest"
+            app:popUpToInclusive="false"
+            app:enterAnim="@anim/shop_slide_in_right"
+            app:exitAnim="@anim/shop_slide_out_left"
+            app:popEnterAnim="@anim/shop_slide_in_left"
+            app:popExitAnim="@anim/shop_slide_out_right"/>
+
+    </fragment>
+
+    <!-- ── Checkout ──────────────────────────────────────────────────────── -->
+    <fragment
+        android:id="@+id/shop_checkout_dest"
+        android:name="com.interviewprep.exercises.exercises.shopping.ui.checkout.CheckoutFragment"
+        android:label="Checkout"
+        tools:layout="@layout/fragment_checkout"/>
+
+    <!-- ── Settings: reachable from overflow menu (codelab step 7) ──────── -->
+    <!--
+        NavigationUI.onNavDestinationSelected matches the menu item ID
+        "shop_settings_dest" to THIS destination ID automatically.
+        The label becomes the ActionBar title.
+    -->
+    <fragment
+        android:id="@+id/shop_settings_dest"
+        android:name="com.interviewprep.exercises.exercises.shopping.ui.SettingsFragment"
+        android:label="Settings"
+        tools:layout="@layout/fragment_shop_settings"/>
+
+</navigation>
